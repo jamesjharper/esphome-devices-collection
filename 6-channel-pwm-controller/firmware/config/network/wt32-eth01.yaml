@@ -1,0 +1,18 @@
+# requires 
+#esp32:
+#  board: esp-wrover-kit  # actually WT32-ETH01 V1.4, some GPIO mappings wrong
+#  framework:
+#    type: arduino
+
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk_mode: GPIO0_IN
+  phy_addr: 1
+  power_pin: GPIO16
+
+  manual_ip:
+    static_ip: !secret eth_static_ip
+    gateway: !secret eth_gateway
+    subnet: !secret eth_subnet

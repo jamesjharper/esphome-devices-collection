@@ -1,0 +1,89 @@
+substitutions:
+  cold_white_color_temperature: "6500 K"
+  warm_white_color_temperature: "2000 K"
+  constant_brightness: "true"
+  gamma_correct: "2.0"
+  default_transition_length: "2s"
+  channel_a_assignment: "0.0"
+  channel_b_assignment: "0.0"
+  channel_c_assignment: "0.0"
+  channel_d_assignment: "0.0"
+  channel_e_assignment: "0.0"
+  channel_f_assignment: "0.0"
+
+light:
+  - platform: cwww
+    id: ${light_name}_brightness_light
+    name: "Brightness ${light_name}"
+    cold_white: ${light_name}_attenuator_cw
+    warm_white: ${light_name}_attenuator_ww
+    cold_white_color_temperature: ${cold_white_color_temperature}
+    warm_white_color_temperature: ${warm_white_color_temperature}
+    constant_brightness: ${constant_brightness}
+    gamma_correct: ${gamma_correct}
+    default_transition_length: ${default_transition_length}
+    disabled_by_default: false
+    on_state:
+      - lambda: |-
+          // Ignore on state if `${light_name}_power_switch` is in off state
+          if (id(${light_name}_power_switch).state == false) {
+            auto call = id(${light_name}_brightness_light).make_call();
+            call.set_state(false);
+            call.set_publish(false);
+            call.perform();
+          }
+
+switch:
+  - platform: template
+    id: ${light_name}_power_switch
+    name: "Power ${light_name}"
+    restore_state: yes
+    optimistic: false
+    # As light_brightness will read the light_power.state, the state is set early so that it
+    # if gets the correct value
+    turn_on_action:
+      - switch.template.publish:
+          id: ${light_name}_power_switch
+          state: ON
+      - light.turn_on:
+          id: ${light_name}_brightness_light
+          #transition_length: 30s
+    turn_off_action:
+      - switch.template.publish:
+          id: ${light_name}_power_switch
+          state: OFF
+      - light.turn_off: ${light_name}_brightness_light
+
+output:
+  - platform: custom
+    type: float
+    lambda: |-
+
+      auto attenuator_cw = new esphome::output::MultiSinkSourceFloatOutput();
+      auto attenuator_ww = new esphome::output::MultiSinkSourceFloatOutput();
+
+      attenuator_cw->add_sink(ledc_a_attn_output, ${channel_a_assignment}f);
+      attenuator_ww->add_sink(ledc_b_attn_output, ${channel_b_assignment}f);
+      attenuator_cw->add_sink(ledc_c_attn_output, ${channel_c_assignment}f);
+      attenuator_ww->add_sink(ledc_d_attn_output, ${channel_d_assignment}f);
+      attenuator_cw->add_sink(ledc_e_attn_output, ${channel_e_assignment}f);
+      attenuator_ww->add_sink(ledc_f_attn_output, ${channel_f_assignment}f);
+
+      // Register devices
+      App.register_component(attenuator_cw);
+      App.register_component(attenuator_ww);
+
+      return { 
+        attenuator_cw,
+        attenuator_ww,
+      };
+
+    outputs:
+      - id: ${light_name}_attenuator_cw
+      - id: ${light_name}_attenuator_ww
+
+  - id: ___${light_name}_attenuator_cw
+    platform: multi_sink_source_float_output
+ #   sinks:
+ #     - id: ledc_a_attn_output
+ #     - id: ledc_b_attn_output

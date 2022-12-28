@@ -1,0 +1,39 @@
+esphome:
+  name: "${device_name}"
+  # Automatically add the mac address to the name
+  name_add_mac_suffix: true
+
+  project:
+    name: "esphome.${device_name}"
+    version: "1.1"
+
+  platformio_options:
+    board_name: "6 Channel PWM Controller"
+    board_url: "https://github.com/jamesjharper/esphome-devices-collection/6-channel-pwm-controller"
+    board_vendor: "James Harper"
+
+esp32:
+  board: esp32dev
+
+preferences:
+  flash_write_interval: 5min
+
+# Enable logging
+logger:
+  level: "${log_level}"
+
+# Enable Home Assistant API
+api:
+  password: !secret api_password
+  # disable reboot on network outage
+  reboot_timeout: 0s
+  encryption:
+    key: !secret api_encryption
+
+ota:
+  password: !secret ota_password
+  
+#status_led:
+#  pin:
+#    number: GPIO02
+#    drive_strength: 10mA
