@@ -3,40 +3,38 @@ import esphome.config_validation as cv
 from esphome.components import output
 from esphome.const import CONF_ID
 
+from . import multi_sink_source_float_output_ns, MultiSinkSourceFloatOutput, SinkTarget
+from ..multi_sink_float_output import MultiSinkOutput,  MultiSinkFloatOutput
 
-multi_sink_source_float_output_ns = cg.esphome_ns.namespace('output')
-multi_sink_source_float_output = multi_sink_source_float_output_ns.class_('MultiSinkSourceFloatOutput', output.FloatOutput, cg.Component)
-
-sink_target_ns = cg.esphome_ns.namespace('output')
-sink_target = sink_target_ns.class_('SinkTarget')
-
+CONF_SINKS = "sinks"
+CONF_OUTPUT_ID = "output_id"
+CONF_AGG_PERCENT = "percentage"
 
 CONFIG_SCHEMA = output.FLOAT_OUTPUT_SCHEMA.extend({
-    cv.Required(CONF_ID): cv.declare_id(multi_sink_source_float_output),
-    cv.Optional("sinks"): cv.ensure_list(
+    cv.Required(CONF_ID): cv.declare_id(MultiSinkSourceFloatOutput),
+    cv.Optional(CONF_SINKS): cv.ensure_list(
             cv.Schema({
-                cv.GenerateID(): cv.declare_id(sink_target),
-
+                cv.GenerateID(): cv.declare_id(SinkTarget),
+                cv.Required(CONF_OUTPUT_ID): cv.use_id(MultiSinkFloatOutput),
+                cv.Required(CONF_AGG_PERCENT): cv.percentage,
             }).extend(cv.ENTITY_BASE_SCHEMA)
         ),
 }).extend(cv.COMPONENT_SCHEMA)
 
 
-
-
-
-def to_code(config):
+async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    yield output.register_output(var, config)
+    await cg.register_component(var, config)
+    await output.register_output(var, config)
 
-    #out = yield cg.get_variable(config["output_id"])
-    #cg.add(var.set_output(out))
+    if CONF_SINKS in config:
+        for sink in config[CONF_SINKS]:
+            snk = cg.new_variable(sink[CONF_ID], SinkTarget())
 
-    for i, conf in enumerate(config.get("sinks", [])):
-        #sink_def = cg.Pvariable(conf[CONF_ID], var.get_component(i))
+            target = await cg.get_variable(sink[CONF_OUTPUT_ID])
+            cg.add(snk.set_target(target))
 
-        #  void add_sink(MultiSinkOutput* target_sink, float max_attenuation = 1.0f) { 
-        cg.add(var.add_sink(conf))
-        #await cg.register_component(comp, conf)
+            agg_percent = sink[CONF_AGG_PERCENT]
+            cg.add(snk.set_aggregate_percentage(agg_percent))
 
-    yield cg.register_component(var, config)
+            cg.add(var.add_sink(snk))

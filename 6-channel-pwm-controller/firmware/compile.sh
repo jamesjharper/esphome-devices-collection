@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
 
-esphome compile base.yaml
+esphome compile cwww_3x.yaml

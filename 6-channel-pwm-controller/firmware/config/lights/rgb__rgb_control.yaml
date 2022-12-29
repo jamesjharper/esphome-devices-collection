@@ -1,0 +1,41 @@
+substitutions:
+  control_name: ""
+  id: ""
+  red_output: ""
+  green_output: ""
+  blue_output: ""
+  rgb_assignment: "100%"
+  gamma_correct: "2.0"
+  default_transition_length: "1s"
+  hidden_controller: "false"
+
+light:
+  - platform: rgb
+    id: ${id}
+    name: "${control_name} Color"
+    red: _${id}_red_output_control
+    green: _${id}_green_output_control
+    blue: _${id}_blue_output_control
+    disabled_by_default: ${hidden_controller}
+
+output:
+  # Red Outputs
+  - platform: multi_sink_source_float_output
+    id: _${id}_red_output_control
+    sinks:
+      - output_id: ${red_output}
+        percentage: ${rgb_assignment}
+
+  # Green outputs
+  - platform: multi_sink_source_float_output
+    id: _${id}_green_output_control
+    sinks:
+      - output_id: ${green_output}
+        percentage: ${rgb_assignment}
+
+  # Blue outputs
+  - platform: multi_sink_source_float_output
+    id: _${id}_blue_output_control
+    sinks:
+      - output_id: ${blue_output}
+        percentage: ${rgb_assignment}

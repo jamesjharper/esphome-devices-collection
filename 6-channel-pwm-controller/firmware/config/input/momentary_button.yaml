@@ -1,5 +1,11 @@
+substitutions:
+  control_name: ""
+  id: ""
+  target_on_light_id: ""
+  target_off_light_ids: ""
+
 globals:
-  - id: brightness_increment_${switch_name}
+  - id: brightness_increment_${id}
     type: float
     restore_value: no
     initial_value: '0.1'
@@ -8,48 +14,59 @@ button:
 
   # Single Click templates
   - platform: template
-    name: "Toggle Switch ${switch_name}"
-    id: single_click_${switch_name}_button
+    name: "${control_name} Toggle Switch"
+    id: single_click_${id}_button
     disabled_by_default: true
     on_press:
       then:
-#        - switch.turn_off: disable_automation_switch
-        - switch.toggle: ${switch_name}_power_switch      
+        # reset toggled max brightness state
+        - switch.template.publish:
+            id: ${id}_max_brightness_switch
+            state: OFF
+        - switch.template.publish:
+            id: ${id}_disable_remote_switch
+            state: OFF
+        - switch.toggle: ${id}_power_switch      
 
   # Double Click templates  
   - platform: template
-    name: "Max brightness ${switch_name}"
-    id: double_click_${switch_name}_button
-    disabled_by_default: true
-#    on_press:
-#      then:
-#        - switch.turn_off: disable_automation_switch
-#        - switch.toggle: max_brightness_${switch_name}_switch
-
-  # Long Press templates 
-  - platform: template
-    name: "Cycle Brightness ${switch_name}"
-    id: long_click_${switch_name}_button
+    name: "${control_name} Max brightness"
+    id: double_click_${id}_button
     disabled_by_default: true
     on_press:
       then:
-      #  - switch.turn_off: disable_automation_switch
-        - switch.turn_on: ${switch_name}_power_switch
-      #  - switch.turn_on: disable_automation_switch
-        - lambda: |-
-            auto remote_brightness = id(${switch_name}_brightness_light).current_values.get_brightness();
+        - switch.toggle: ${id}_max_brightness_switch
 
-            remote_brightness = remote_brightness + id(brightness_increment_${switch_name});
+  # Long Press templates 
+  - platform: template
+    name: "${control_name} Cycle Brightness "
+    id: long_click_${id}_button
+    disabled_by_default: true
+    on_press:
+      then:
+        - switch.turn_on: ${id}_power_switch
+        # reset toggled max brightness state
+        - switch.template.publish:
+            id: ${id}_max_brightness_switch
+            state: OFF
+        # disable remote state changes from over writing the explicitly set brightness 
+        - switch.template.publish:
+            id: ${id}_disable_remote_switch
+            state: ON
+        - lambda: |-
+            auto remote_brightness = ${target_on_light_id}->current_values.get_brightness();
+
+            remote_brightness = remote_brightness + id(brightness_increment_${id});
 
             if(remote_brightness <= 0.1f) {
               remote_brightness = 0.1f;
-              id(brightness_increment_${switch_name}) *= -1.0f; 
+              id(brightness_increment_${id}) *= -1.0f; 
             } else if(remote_brightness >= 1.0f) {
               remote_brightness = 1.0f;
-              id(brightness_increment_${switch_name}) *= -1.0f;
+              id(brightness_increment_${id}) *= -1.0f;
             } 
               
-            auto call = id(${switch_name}_brightness_light).make_call();
+            auto call = id(${target_on_light_id}).make_call();
             call.set_state(true);
             call.set_brightness_if_supported(remote_brightness);
             call.set_transition_length(500); 
@@ -57,9 +74,98 @@ button:
             call.perform();
 
 
+
+switch:
+  - platform: template
+    id: ${id}_power_switch
+    name: "${control_name} Power"
+    restore_state: yes
+    optimistic: false
+    # As light_brightness will read the light_power.state, the state is set early so that it
+    # if gets the correct value
+    turn_on_action:
+      - switch.template.publish:
+          id: ${id}_power_switch
+          state: ON
+      - light.turn_on:
+          id: ${target_on_light_id}
+    turn_off_action:
+      - switch.template.publish:
+          id: ${id}_power_switch
+          state: OFF
+      # Reset remote disable when turning off
+      - switch.turn_off: ${id}_disable_remote_switch
+      - lambda: |- 
+          auto on_lights = ${target_off_light_ids};
+          for ( auto it = on_lights.begin(); it != on_lights.end(); ++it ) {
+            auto call = (*it)->make_call();
+            call.set_state(false);
+            call.perform();
+          }
+
+      #- light.turn_off: ${target_light_id}
+
+
+  - platform: template
+    id: ${id}_max_brightness_switch
+    name: "${control_name} Max Brightness"
+    restore_state: yes
+    optimistic: false
+    disabled_by_default: true
+    turn_on_action:
+      - switch.template.publish:
+          id: ${id}_max_brightness_switch
+          state: ON
+      - lambda: |-
+          // Update brightness without saving to remote
+          auto call = id(${target_on_light_id}).make_call();
+          call.set_state(true);
+          call.set_brightness_if_supported(1.0f);
+          call.set_transition_length(1000);
+          call.set_publish(false);
+          call.perform();
+          return;
+      # disable remote state changes from over writing the explicitly set brightness 
+      - switch.template.publish:
+          id: ${id}_disable_remote_switch
+          state: ON
+    turn_off_action:
+      - switch.template.publish:
+          id: ${id}_max_brightness_switch
+          state: OFF
+      # Reset remote disable when turning off
+      - switch.template.publish:
+          id: ${id}_disable_remote_switch
+          state: OFF
+      - light.turn_on:
+          id: ${target_on_light_id}
+          brightness: !lambda |-
+              // Restore the brightness which was set before brightness mode was enabled
+              return id(${target_on_light_id}).remote_values.get_brightness();
+
+  - platform: template
+    id: ${id}_disable_remote_switch
+    name: "${control_name} Disable remote"
+    restore_state: yes
+    optimistic: false
+    disabled_by_default: true
+    turn_on_action:
+      - switch.template.publish:
+          id: ${id}_disable_remote_switch
+          state: ON
+    turn_off_action:
+      - switch.template.publish:
+          id: ${id}_max_brightness_switch
+          state: OFF
+      - light.turn_on:
+          id: ${target_on_light_id}
+          brightness: !lambda |-
+              // Restore the brightness which was set before brightness mode was enabled
+              return id(${target_on_light_id}).remote_values.get_brightness();
+
 binary_sensor:
   - platform: gpio
-    name: "Switch ${switch_name}"
+    name: "Switch ${id}"
     pin: ${switch_gpio}
     internal: true
     filters:
@@ -77,8 +183,8 @@ binary_sensor:
           - ON for at most 0.5s
           - OFF for at least 0.2s
         then:
-          - logger.log: "on_single_click_${switch_name} detected"
-          - button.press: single_click_${switch_name}_button
+          - logger.log: "on_single_click_${id} detected"
+          - button.press: single_click_${id}_button
           
       # Double Click
       - timing:
@@ -87,8 +193,8 @@ binary_sensor:
           - ON for at most 0.5s
           - OFF for at least 0.1s
         then:
-          - logger.log: "on_double_click_${switch_name} detected"
-          - button.press: double_click_${switch_name}_button         
+          - logger.log: "on_double_click_${id} detected"
+          - button.press: double_click_${id}_button         
 
 
       # Triple Click
@@ -100,12 +206,12 @@ binary_sensor:
           - ON for at most 0.5s
           - OFF for at least 0.1s
         then:
-          - logger.log: "on_triple_click_${switch_name} detected"
+          - logger.log: "on_triple_click_${id} detected"
           #- button.press: triple_click_a_or_b_button  
 
       # Press and Hold
       - timing:
           - ON for at least 0.5s
         then:
-          - logger.log: "long_press_detected_${switch_name}"
-          - button.press: long_click_${switch_name}_button      
+          - logger.log: "long_press_detected_${id}"
+          - button.press: long_click_${id}_button      

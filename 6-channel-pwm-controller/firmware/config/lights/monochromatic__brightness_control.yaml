@@ -1,0 +1,25 @@
+substitutions:
+  control_name: ""
+  id: ""
+  monochromatic_output: ""
+  monochromatic_assignment: "100%"
+  gamma_correct: "2.0"
+  default_transition_length: "2s"
+  hidden_controller: "false"
+
+light:
+  - platform: monochromatic
+    id: ${id}
+    name: "${control_name} Brightness"
+    gamma_correct: ${gamma_correct}
+    output: _${id}_monochromatic_output
+    default_transition_length: ${default_transition_length}
+    disabled_by_default: ${hidden_controller}
+
+output:
+  # Monochromatic Output
+  - platform: multi_sink_source_float_output
+    id: _${id}_monochromatic_output
+    sinks:
+      - output_id: ${monochromatic_output}
+        percentage: ${monochromatic_assignment}

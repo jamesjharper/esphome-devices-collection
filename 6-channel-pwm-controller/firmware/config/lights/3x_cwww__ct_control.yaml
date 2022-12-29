@@ -1,29 +1,42 @@
 substitutions:
-  #cold_white_color_temperature: "6500 K"
-  cold_white_color_temperature: "4750 K"
-  warm_white_color_temperature: "2000 K"
+  control_name: ""
+  id: ""
+  target_switch_id: ""
+
   constant_brightness: "true"
-  gamma_correct: "1.5"
+  gamma_correct: "2.0"
   default_transition_length: "2s"
-  channel_a_assignment: "0.0"
-  channel_b_assignment: "0.0"
-  channel_c_assignment: "0.0"
-  channel_d_assignment: "0.0"
-  channel_e_assignment: "0.0"
-  channel_f_assignment: "0.0"
+
+  cold_white_color_temperature: "6800 K"
+  warm_white_color_temperature: "2500 K"
+
+  cold_white_output_1: ""
+  warm_white_output_1: ""
+
+  cold_white_output_2: ""
+  warm_white_output_2: ""
+
+  cold_white_output_3: ""
+  warm_white_output_3: ""
+
+  assignment_1: "0.0"
+  assignment_2: "0.0"
+  assignment_3: "0.0"
+
+  hidden_controller: "false"
 
 light:
   - platform: cwww
-    id: ${light_name}
-    name: "Brightness ${light_name}"
-    cold_white: ${light_name}_output_cw
-    warm_white: ${light_name}_output_ww
+    id: ${id}
+    name: "${control_name} Brightness"
+    cold_white: _${id}_output_cw
+    warm_white: _${id}_output_ww
     cold_white_color_temperature: ${cold_white_color_temperature}
     warm_white_color_temperature: ${warm_white_color_temperature}
     constant_brightness: ${constant_brightness}
     gamma_correct: ${gamma_correct}
     default_transition_length: ${default_transition_length}
-    disabled_by_default: false
+    disabled_by_default: ${hidden_controller}
     #on_state:
     #  - lambda: |-
     #      // Ignore on state if `${target_switch_id}` is in off state
@@ -44,23 +57,24 @@ light:
     #        call.perform();
     #      }
 
+
 output:
   - platform: multi_sink_source_float_output
-    id: ${light_name}_output_cw
+    id: _${id}_output_cw
     sinks:
-      - output_id: ledc_a_attn_output
-        percentage: ${channel_a_assignment}
-      - output_id: ledc_c_attn_output
-        percentage: ${channel_b_assignment}
-      - output_id: ledc_e_attn_output
-        percentage: ${channel_e_assignment}
+      - output_id: ${cold_white_output_1}
+        percentage: ${assignment_1}
+      - output_id: ${cold_white_output_2}
+        percentage: ${assignment_2}
+      - output_id: ${cold_white_output_3}
+        percentage: ${assignment_3}
 
   - platform: multi_sink_source_float_output
-    id: ${light_name}_output_ww   
+    id: _${id}_output_ww   
     sinks:
-      - output_id: ledc_b_attn_output
-        percentage: ${channel_b_assignment}
-      - output_id: ledc_d_attn_output
-        percentage: ${channel_d_assignment}
-      - output_id: ledc_f_attn_output
-        percentage: ${channel_f_assignment}
+      - output_id: ${warm_white_output_1}
+        percentage: ${assignment_1}
+      - output_id: ${warm_white_output_2}
+        percentage: ${assignment_2}
+      - output_id: ${warm_white_output_3}
+        percentage: ${assignment_3}

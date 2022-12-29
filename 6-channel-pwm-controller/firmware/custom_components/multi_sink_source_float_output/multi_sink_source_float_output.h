@@ -7,21 +7,22 @@ namespace output {
 
 class SinkTarget {
     MultiSinkOutput* target_sink = NULL;
-    float max_attenuation = 1.0f;
+    float aggregate_percentage = 1.0f;
     SourceHandle source_handle = 0;
 
     public:
 
     void set_target(MultiSinkOutput* target_sink) {
-      this->target_sink = target_sink;
+      this->target_sink = target_sink;     
     }
 
-    void set_target_source_handle(SourceHandle source_handle) {
-      this->source_handle = source_handle;
+    void set_aggregate_percentage(float aggregate_percentage) {
+      this->aggregate_percentage = aggregate_percentage;
     }
 
-    void set_max_attenuation(float max_attenuation) {
-      this->max_attenuation = max_attenuation;
+    void init() {
+      if(this->target_sink) 
+        this->source_handle = target_sink->add_source(this->aggregate_percentage);
     }
 
     void write_state_to_target(float value) {
@@ -43,38 +44,21 @@ class MultiSinkSourceFloatOutput :
   };
 
   FloatValueAggregator aggregated_value;
-  std::vector<SinkRef> targets;
+  std::vector<SinkTarget> targets;
 
   public:
 
-  void add_sink(SinkTarget* target_sink]) { 
-    assert (target_sink != NULL);
-    auto handle = target_sink->add_source(max_attenuation);
-    this->targets.push_back(SinkRef {
-      target_sink: target_sink, 
-      source_handle: handle
-    });
+  void add_sink(SinkTarget target) { 
+    target.init();
+    this->targets.push_back(target);
   }
 
-  void add_sink(MultiSinkOutput* target_sink, float max_attenuation = 1.0f) { 
-    assert (target_sink != NULL);
-    auto handle = target_sink->add_source(max_attenuation);
-    auto target = SinkTarget();
-    target.set_target(target_sink);
-    target.set_target_source_handle(handle);
-
-    this->targets.push_back(SinkTarget {
-      target_sink: target_sink, 
-      source_handle: handle
-    });
+  SourceHandle add_source(float aggregate_percentage) override { 
+    return this->aggregated_value.add_source(aggregate_percentage);
   }
 
-  SourceHandle add_source(float max_attenuation) override { 
-    return this->aggregated_value.add_source(max_attenuation);
-  }
-
-  void write_source_state(float attenuation, SourceHandle handle) override { 
-    this->aggregated_value.update_source_state(attenuation, handle);
+  void write_source_state(float value, SourceHandle handle) override { 
+    this->aggregated_value.update_source_state(value, handle);
     this->apply_state();
   }
 

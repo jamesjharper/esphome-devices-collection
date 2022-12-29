@@ -1,0 +1,108 @@
+substitutions:
+  control_name: ""
+  id: ""
+  target_switch_id: ""
+
+  red_output: ""
+  green_output: ""
+  blue_output: ""
+  cold_white_output: ""
+  mid_white_output: ""
+  warm_white_output: ""
+    
+  warm_white_assignment: "100%"
+  mid_white_assignment: "100%"
+  cold_white_assignment: "100%"
+  rgb_assignment: "100%"
+
+  emulated_cold_white_color_temperature: "10000 K"
+  emulated_warm_white_color_temperature: "1000 K"
+  cold_white_color_temperature: "6800 K"
+  warm_white_color_temperature: "2500 K"
+  mid_white_color_temperature: "3000 K"
+  constant_brightness: "true"
+  gamma_correct: "2.0"
+  default_transition_length: "1s"
+  hidden_controller: "false"
+
+light:
+  - platform: ct_emulator
+    id: ${id}
+    name: "${control_name} Brightness"
+    red: _${id}_red_output_ct
+    green: _${id}_green_output_ct
+    blue: _${id}_blue_output_ct
+    cold_white: _${id}_cold_white_output_ct
+    mid_white: _${id}_mid_white_output_ct
+    warm_white: _${id}_warm_white_output_ct
+    gamma_correct: ${gamma_correct}
+    constant_brightness: ${constant_brightness}
+    mid_white_color_temperature: ${mid_white_color_temperature}
+    cold_white_color_temperature: ${cold_white_color_temperature}
+    warm_white_color_temperature: ${warm_white_color_temperature}
+    emulated_warm_white_color_temperature: ${emulated_warm_white_color_temperature}
+    emulated_cold_white_color_temperature: ${emulated_cold_white_color_temperature}
+    default_transition_length: ${default_transition_length}
+    disabled_by_default: ${hidden_controller}
+    #on_state:
+    #  - lambda: |-
+    #      // Ignore on state if `${target_switch_id}` is in off state
+    #      if (id(${target_switch_id}).state == false) {
+    #        auto call = id(${id}_brightness_light).make_call();
+    #        call.set_state(false);
+    #        call.set_publish(false);
+    #        call.perform();
+    #      }
+    #
+    #      if (id(${id}_disable_remote_switch).state == true) {
+    #        auto current_brightness = id(${id}_brightness_light).current_values.get_brightness();
+    #        auto call = id(${id}_brightness_light).make_call();
+    #        call.set_state(true);
+    #        call.set_brightness_if_supported(current_brightness);
+    #        call.set_transition_length(0); 
+    #        call.set_publish(false);
+    #        call.perform();
+    #      }
+
+output:
+  # Red Outputs
+  - platform: multi_sink_source_float_output
+    id: _${id}_red_output_ct
+    sinks:
+      - output_id: ${red_output}
+        percentage: ${rgb_assignment}
+
+  # Green outputs
+  - platform: multi_sink_source_float_output
+    id: _${id}_green_output_ct
+    sinks:
+      - output_id: ${green_output}
+        percentage: ${rgb_assignment}
+
+  # Blue outputs
+  - platform: multi_sink_source_float_output
+    id: _${id}_blue_output_ct
+    sinks:
+      - output_id: ${blue_output}
+        percentage: ${rgb_assignment}
+
+  # Mid white outputs
+  - platform: multi_sink_source_float_output
+    id: _${id}_mid_white_output_ct
+    sinks:
+      - output_id: ${mid_white_output}
+        percentage: ${mid_white_assignment}
+
+  # Cold white outputs
+  - platform: multi_sink_source_float_output
+    id: _${id}_cold_white_output_ct
+    sinks:
+      - output_id: ${cold_white_output}
+        percentage: ${cold_white_assignment}
+
+  # Warm white outputs
+  - platform: multi_sink_source_float_output
+    id: _${id}_warm_white_output_ct
+    sinks:
+      - output_id: ${warm_white_output}
+        percentage: ${warm_white_assignment}

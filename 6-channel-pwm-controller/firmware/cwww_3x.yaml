@@ -1,0 +1,121 @@
+# These substitutions allow the end user to override certain values
+substitutions:
+  device_name: "cwww-x3-light"
+  log_level: "DEBUG"
+
+packages:
+  core: !include config/core.yaml
+  network_access: !include "config/network/wifi.yaml"
+  #network_access: !include config/network/LAN8720.yaml
+
+  # Configure lights
+  3x_cwww__ct_control_a: !include 
+    file: config/lights/3x_cwww__ct_control.yaml
+    vars: 
+      control_name: "A"
+      id: "ct_a"
+      cold_white_color_temperature: "6800 K"
+      warm_white_color_temperature: "2500 K"
+      constant_brightness: "true"
+
+      cold_white_output_1: "cold_white_1_output"
+      warm_white_output_1: "warm_white_1_output"
+
+      cold_white_output_2: "cold_white_2_output"
+      warm_white_output_2: "warm_white_2_output"
+
+      cold_white_output_3: "cold_white_3_output"
+      warm_white_output_3: "warm_white_3_output"
+
+      assignment_1: "100%"
+      assignment_2: "50%"
+      assignment_3: "0%"
+     
+
+  3x_cwww__ct_control_b: !include 
+    file: config/lights/3x_cwww__ct_control.yaml
+    vars: 
+      control_name: "B"
+      id: "ct_b"
+      cold_white_color_temperature: "6800 K"
+      warm_white_color_temperature: "2500 K"
+      constant_brightness: "true"
+
+      cold_white_output_1: "cold_white_1_output"
+      warm_white_output_1: "warm_white_1_output"
+
+      cold_white_output_2: "cold_white_2_output"
+      warm_white_output_2: "warm_white_2_output"
+
+      cold_white_output_3: "cold_white_3_output"
+      warm_white_output_3: "warm_white_3_output"
+
+      assignment_1: "0%"
+      assignment_2: "50%"
+      assignment_3: "100%"
+     
+  # Configure input buttons
+  momentary_button_a: !include 
+    file: config/input/momentary_button.yaml
+    vars: 
+      control_name: "A"
+      id: "a_switch"
+      target_on_light_id: "ct_a"
+      target_off_light_ids: "{ct_a}"
+      switch_gpio: GPIO34
+
+  momentary_button_b: !include 
+    file: config/input/momentary_button.yaml
+    vars: 
+      control_name: "B"
+      id: "b_switch"
+      target_on_light_id: "ct_b"
+      target_off_light_ids: "{ct_b}"
+      switch_gpio: GPIO35
+    
+
+  # Configure input buttons
+  cold_white_output_1: !include 
+    file: config/output/pwm_channel.yaml
+    vars: 
+      id: cold_white_1_output
+      ledc_gpio: GPIO32
+      ledc_min_power: 0.0045
+
+  warm_white_output_1: !include 
+    file: config/output/pwm_channel.yaml
+    vars: 
+      id: warm_white_1_output
+      ledc_gpio: GPIO33
+      ledc_min_power: 0.0040
+
+  cold_white_output_2: !include 
+    file: config/output/pwm_channel.yaml
+    vars: 
+      id: cold_white_2_output
+      ledc_gpio: GPIO14
+      ledc_min_power: 0.0045
+
+  warm_white_output_2: !include 
+    file: config/output/pwm_channel.yaml
+    vars: 
+      id: warm_white_2_output
+      ledc_gpio: GPIO13
+      ledc_min_power: 0.0040
+
+
+  cold_white_output_3: !include 
+    file: config/output/pwm_channel.yaml
+    vars: 
+      id: cold_white_3_output
+      ledc_gpio: GPIO16
+      ledc_min_power: 0.0045
+
+  warm_white_output_3: !include 
+    file: config/output/pwm_channel.yaml
+    vars: 
+      id: warm_white_3_output
+      ledc_gpio: GPIO04
+      ledc_min_power: 0.0040
+
+

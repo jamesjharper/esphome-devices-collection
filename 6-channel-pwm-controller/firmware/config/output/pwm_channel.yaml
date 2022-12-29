@@ -1,19 +1,20 @@
 substitutions:
-  ledc_freq: "5000"
+  id: ""
+  ledc_freq: "4882"
   ledc_min_power: "0.0"
   ledc_max_power: "1.0"
 
 output:
-  - id: _channel_${output_name}_ledc_output
-    platform: ledc
+  - id: _channel_${id}_ledc_output
+    platform: ledc_ext
     pin: ${ledc_gpio}
     frequency: ${ledc_freq}
     min_power: ${ledc_min_power}
     max_power: ${ledc_max_power}
     zero_means_zero: true
 
-  - id: ledc_${output_name}_attn_output
+  - id: ${id}
     platform: multi_sink_float_output
-    output_id: _channel_${output_name}_ledc_output
+    output_id: _channel_${id}_ledc_output
 
   
