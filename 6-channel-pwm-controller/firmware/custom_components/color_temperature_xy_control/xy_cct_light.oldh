@@ -1,0 +1,69 @@
+#pragma once
+
+#include "esphome/core/component.h"
+#include "esphome/components/light/light_output.h"
+#include "esphome/components/color_calibrated_output/color_calibrated_output.h"
+#include "esphome/components/color_profile/color_profile.h"
+
+namespace esphome {
+namespace light {
+
+
+using namespace esphome::color_profile::math;
+using namespace esphome::color_profile::cms;
+using namespace esphome::color_calibrated_output;
+
+class XyCctLightOutput : public LightOutput {
+    protected:
+
+    ColorCalibratedOutput* _primary_output_device;
+    std::vector<ColorCalibratedOutput*> _secondary_output_devices;
+
+    float min_mireds, max_mireds;
+
+    public:
+
+    void set_cold_white_color_temperature(float mireds) { 
+        this->min_mireds = mireds;
+    }
+
+    void set_warm_white_color_temperature(float mireds) { 
+        this->max_mireds = mireds;
+    }
+
+    void set_output_device(ColorCalibratedOutput* output) { 
+        this->_primary_output_device = output; 
+    }
+
+    void add_additional_output_device(ColorCalibratedOutput* output) {
+        this->_secondary_output_devices.push_back(output); 
+    }
+
+    LightTraits get_traits() override {
+        auto traits = light::LightTraits();
+        traits.set_supported_color_modes({light::ColorMode::COLOR_TEMPERATURE});
+
+        traits.set_min_mireds(this->min_mireds);
+        traits.set_max_mireds(this->max_mireds);
+        return traits;
+    }
+
+    void write_state(LightState *state) override
+    {
+        auto cct_brightness = state->current_values.get_brightness() * state->current_values.get_state();
+        auto target_temperature = state->current_values.get_color_temperature();
+        bfloat2 xy;
+        compute_white_point_chromaticities_approx_mireds(target_temperature, xy);
+        
+        this->_primary_output_device->set_white_balance_xyY(xy.x, xy.y, cct_brightness); 
+        this->_primary_output_device->apply();
+
+        for (auto secondary_device : this->_secondary_output_devices) {
+            secondary_device->set_white_balance_xyY(xy.x, xy.y, cct_brightness);
+            secondary_device->apply();
+        }
+    }
+};
+
+}  // namespace light
+}  // namespace esphome

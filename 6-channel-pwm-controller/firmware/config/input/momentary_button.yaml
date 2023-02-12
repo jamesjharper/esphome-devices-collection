@@ -169,9 +169,9 @@ binary_sensor:
     pin: ${switch_gpio}
     internal: true
     filters:
-      - invert:
-      - delayed_on: 50ms  # Noise rejection
-      - delayed_off: 50ms # Noise rejection
+#      - invert:
+      - delayed_on: 5ms  # Noise rejection
+      - delayed_off: 5ms # Noise rejection
       - autorepeat:
         - delay: 1s
           time_off: 10ms

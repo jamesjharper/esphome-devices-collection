@@ -1,6 +1,8 @@
 substitutions:
   id: ""
-  ledc_freq: "4882"
+  #ledc_freq: "4882"
+  ledc_freq: "9765"
+  
   ledc_min_power: "0.0"
   ledc_max_power: "1.0"
 

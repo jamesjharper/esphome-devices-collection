@@ -16,34 +16,39 @@ substitutions:
   rgb_assignment: "100%"
 
   emulated_cold_white_color_temperature: "10000 K"
-  emulated_warm_white_color_temperature: "1000 K"
+  emulated_warm_white_color_temperature: "1667 K"
   cold_white_color_temperature: "6800 K"
-  warm_white_color_temperature: "2500 K"
+  warm_white_color_temperature: "1800 K"
   mid_white_color_temperature: "3000 K"
-  constant_brightness: "true"
+  constant_brightness: "false"
   gamma_correct: "2.0"
   default_transition_length: "1s"
   hidden_controller: "false"
 
+
+
 light:
-  - platform: ct_emulator
-    id: ${id}
-    name: "${control_name} Brightness"
-    red: _${id}_red_output_ct
-    green: _${id}_green_output_ct
-    blue: _${id}_blue_output_ct
-    cold_white: _${id}_cold_white_output_ct
-    mid_white: _${id}_mid_white_output_ct
-    warm_white: _${id}_warm_white_output_ct
-    gamma_correct: ${gamma_correct}
-    constant_brightness: ${constant_brightness}
-    mid_white_color_temperature: ${mid_white_color_temperature}
-    cold_white_color_temperature: ${cold_white_color_temperature}
-    warm_white_color_temperature: ${warm_white_color_temperature}
-    emulated_warm_white_color_temperature: ${emulated_warm_white_color_temperature}
-    emulated_cold_white_color_temperature: ${emulated_cold_white_color_temperature}
-    default_transition_length: ${default_transition_length}
-    disabled_by_default: ${hidden_controller}
+
+
+#  - platform: ct_emulator
+#    id: ${id}
+#    name: "${control_name} Brightness"
+#    red: _${id}_red_output_ct
+#    green: _${id}_green_output_ct
+#    blue: _${id}_blue_output_ct
+#    cold_white: _${id}_cold_white_output_ct
+#    mid_white: _${id}_mid_white_output_ct
+#    warm_white: _${id}_warm_white_output_ct
+#    gamma_correct: ${gamma_correct}
+#    constant_brightness: ${constant_brightness}
+#    mid_white_color_temperature: ${mid_white_color_temperature}
+#    cold_white_color_temperature: ${cold_white_color_temperature}
+#    warm_white_color_temperature: ${warm_white_color_temperature}
+#    emulated_warm_white_color_temperature: ${emulated_warm_white_color_temperature}
+#    emulated_cold_white_color_temperature: ${emulated_cold_white_color_temperature}
+#    default_transition_length: ${default_transition_length}
+#    disabled_by_default: ${hidden_controller}
+
     #on_state:
     #  - lambda: |-
     #      // Ignore on state if `${target_switch_id}` is in off state
@@ -64,45 +69,57 @@ light:
     #        call.perform();
     #      }
 
+
+  - platform: rgb_xy_control
+    id: _${id}_xy_rgb_light
+    name: "RGB"
+    default_transition_length: ${default_transition_length}
+    output: _${id}_color_light_output
+
+  - platform: color_temperature_xy_control
+#    id: _${id}_xy_cct_light
+    id: ${id}
+    name: "CCT"
+    default_transition_length: ${default_transition_length}
+    output: _${id}_color_light_output
+    warm_white: "1000 K"
+    cold_white: "7000 K"
+
+
 output:
-  # Red Outputs
-  - platform: multi_sink_source_float_output
-    id: _${id}_red_output_ct
-    sinks:
-      - output_id: ${red_output}
-        percentage: ${rgb_assignment}
+  - platform: color_output
+    id: _${id}_color_light_output
+    source_color_profile:
+      red_xy:   [0.70, 0.30]
+      green_xy: [0.14, 0.70]
+      blue_xy:  [0.14, 0.05]
+      white_point_cct: "5000 K"
+      gamma: 2.4
+    routes:
+      - xy_output: _${id}_rgb_strip_light_output
+        xyz_route_percentage: ${rgb_assignment}
+      - xy_output: _${id}_ct_strip_light_output
+        xyz_route_percentage: ${rgb_assignment}
 
-  # Green outputs
-  - platform: multi_sink_source_float_output
-    id: _${id}_green_output_ct
-    sinks:
-      - output_id: ${green_output}
-        percentage: ${rgb_assignment}
+  - platform: rgb_xy_output
+    id: _${id}_rgb_strip_light_output
+    red: ${red_output}
+    green: ${green_output}
+    blue: ${blue_output}
+    rgb_profile:
+      red_xy:   [0.70, 0.30]
+      green_xy: [0.14, 0.70]
+      blue_xy:  [0.14, 0.05]
+      white_point_cct: "5000 K"
+      gamma: 2.8
 
-  # Blue outputs
-  - platform: multi_sink_source_float_output
-    id: _${id}_blue_output_ct
-    sinks:
-      - output_id: ${blue_output}
-        percentage: ${rgb_assignment}
 
-  # Mid white outputs
-  - platform: multi_sink_source_float_output
-    id: _${id}_mid_white_output_ct
-    sinks:
-      - output_id: ${mid_white_output}
-        percentage: ${mid_white_assignment}
-
-  # Cold white outputs
-  - platform: multi_sink_source_float_output
-    id: _${id}_cold_white_output_ct
-    sinks:
-      - output_id: ${cold_white_output}
-        percentage: ${cold_white_assignment}
-
-  # Warm white outputs
-  - platform: multi_sink_source_float_output
-    id: _${id}_warm_white_output_ct
-    sinks:
-      - output_id: ${warm_white_output}
-        percentage: ${warm_white_assignment}
+  - platform: cwww_xy_output
+    id: _${id}_ct_strip_light_output
+    cwww_profile: 
+      white_point: "5000 K"
+      warm_white: "1600 K"
+      cold_white: "6500 K"
+      gamma: 1.8
+    cold_white: ${cold_white_output}
+    warm_white: ${warm_white_output}

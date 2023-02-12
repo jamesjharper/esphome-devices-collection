@@ -1,0 +1,385 @@
+#pragma once
+
+#include "esphome/core/component.h"
+#include "esphome/components/color_profile/color_management_system.h"
+
+namespace esphome {
+namespace color_profile {
+
+using namespace esphome::color_profile::math;
+using namespace esphome::color_profile::cms;
+
+
+namespace setup_priority {
+    const float CALCULATE_CHROMA = esphome::setup_priority::HARDWARE;
+}
+
+
+class OutputColourProfileTransform {
+    protected:
+    cms::Chromaticities _chroma;
+    float3x3 _XYZ2RGB;  
+    bfloat2 _white_balance;
+
+    public:
+
+    OutputColourProfileTransform() {
+        this->_XYZ2RGB = float3x3::Identity;
+    }
+
+    OutputColourProfileTransform(cms::Chromaticities chroma) {
+        this->_XYZ2RGB = float3x3::Identity;
+        this->_chroma = chroma;
+        this->_white_balance = chroma.W;
+
+        OutputColourProfileTransform::build_transform_matrix();
+    }
+
+    void set_white_point(float x, float y) {
+        this->_white_balance = bfloat2(x,y);
+        OutputColourProfileTransform::build_transform_matrix();
+    }
+
+    std::array<float, 3> transform_XYZ2RGB(float x, float y, float z) {
+        bfloat3 xyz_t = this->_XYZ2RGB * bfloat3(x, y, z);
+        return {xyz_t.x, xyz_t.y, xyz_t.z};
+    }
+
+    std::array<float, 3> transform_xyY2RGB(float x, float y, float Y) {
+        bfloat3	XYZ;
+        ColorManagementSystem::xyY2XYZ(bfloat3(x,y,Y), XYZ);
+        return transform_XYZ2RGB(XYZ[0], XYZ[1], XYZ[2]);
+    }
+
+    protected:
+
+    void build_transform_matrix() {
+        bfloat3	xyz_R( this->_chroma.R.x, this->_chroma.R.y, 1.0f - this->_chroma.R.x - this->_chroma.R.y );
+        bfloat3	xyz_G( this->_chroma.G.x, this->_chroma.G.y, 1.0f - this->_chroma.G.x - this->_chroma.G.y );
+        bfloat3	xyz_B( this->_chroma.B.x, this->_chroma.B.y, 1.0f - this->_chroma.B.x - this->_chroma.B.y );
+
+        bfloat3	XYZ_W_in;
+        ColorManagementSystem::xyY2XYZ( bfloat3( this->_chroma.W.x, this->_chroma.W.y, 1.0f ), XYZ_W_in );
+
+        bfloat3	XYZ_W_out;
+        ColorManagementSystem::xyY2XYZ( bfloat3( this->_white_balance.x, this->_white_balance.y, 1.0f ), XYZ_W_out );
+
+        // Build xyz matrix and its inverse (common to both input and output)
+        float3x3 M_xyz;
+        M_xyz.r[0].Set( xyz_R.x, xyz_R.y, xyz_R.z );
+        M_xyz.r[1].Set( xyz_G.x, xyz_G.y, xyz_G.z );
+        M_xyz.r[2].Set( xyz_B.x, xyz_B.y, xyz_B.z );
+        float3x3	M_inv_xyz = M_xyz.Inverse();
+
+        // Retrieve the sigmas for in and out white points
+        bfloat3	Sum_RGB_in = XYZ_W_in * M_inv_xyz;
+        bfloat3	Sum_RGB_out = XYZ_W_out * M_inv_xyz;
+
+        // Perform the XYZ_in^-1 * XYZ_out product
+        M_xyz.Scale( Sum_RGB_out );
+        bfloat3	rec_Sum_RGB_in( 1.0f / Sum_RGB_in.x, 1.0f / Sum_RGB_in.y, 1.0f / Sum_RGB_in.z );
+        M_inv_xyz.r[0] = rec_Sum_RGB_in * M_inv_xyz.r[0];
+        M_inv_xyz.r[1] = rec_Sum_RGB_in * M_inv_xyz.r[1];
+        M_inv_xyz.r[2] = rec_Sum_RGB_in * M_inv_xyz.r[2];
+
+        this->_XYZ2RGB = M_inv_xyz * M_xyz;
+    }
+};
+
+
+
+class InputColourProfileTransform {
+    protected:
+    cms::Chromaticities _chroma;
+    float3x3 _RGB2XYZ;  
+
+    public:
+
+    OutputColourProfileTransform() {
+        this->_RGB2XYZ = float3x3::Identity;
+    }
+
+    OutputColourProfileTransform(cms::Chromaticities chroma) {
+        this->_RGB2XYZ = float3x3::Identity;
+        this->_chroma = chroma;
+
+        OutputColourProfileTransform::build_transform_matrix();
+    }
+
+    void set_white_point(float x, float y) {
+        this->_chroma.W = bfloat2(x,y);
+        OutputColourProfileTransform::build_transform_matrix();
+    }
+
+    std::array<float, 3> transform_RGB2XYZ(float r, float g, float b) {
+        bfloat3 xyz_t = this->_RGB2XYZ * bfloat3(r, g, b);
+        return {xyz_t.x, xyz_t.y, xyz_t.z};
+    }
+
+
+    std::array<float, 3> transform_RGB2xyY(float r, float g, float b) {
+        bfloat3 xyz_t = this->_RGB2XYZ * bfloat3(r, g, b);
+        bfloat3	xyy;
+        ColorManagementSystem::xyY2XYZ(xyz_t, xyy);
+        return transform_XYZ2RGB(xyy[0], xyy[1], xyy[2]);
+    }
+
+    protected:
+
+    void build_transform_matrix() {
+        bfloat3	xyz_R( this->_chroma.R.x, this->_chroma.R.y, 1.0f - this->_chroma.R.x - this->_chroma.R.y );
+        bfloat3	xyz_G( this->_chroma.G.x, this->_chroma.G.y, 1.0f - this->_chroma.G.x - this->_chroma.G.y );
+        bfloat3	xyz_B( this->_chroma.B.x, this->_chroma.B.y, 1.0f - this->_chroma.B.x - this->_chroma.B.y );
+
+        bfloat3	XYZ_W;
+        ColorManagementSystem::xyY2XYZ( bfloat3( this->_chroma.W.x, this->_chroma.W.y, 1.0f ), XYZ_W_in );
+
+        // Build the xyz->RGB matrix
+        float3x3 XYZ2RGB;  
+        XYZ2RGB.r[0] = xyz_R;
+        XYZ2RGB.r[1] = xyz_G;
+        XYZ2RGB.r[2] = xyz_B;
+        XYZ2RGB.Invert();
+
+        // Knowing the XYZ of the white point, we retrieve the scale factor for each axis x, y and z that will help us get X, Y and Z
+        bfloat3	sum_RGB = XYZ_W * _XYZ2RGB;
+
+        // Finally, we can retrieve the RGB->XYZ transform
+        this->_RGB2XYZ.r[0] = sum_RGB.x * xyz_R;
+        this->_RGB2XYZ.r[1] = sum_RGB.y * xyz_G;
+        this->_RGB2XYZ.r[2] = sum_RGB.z * xyz_B;
+    }
+};
+
+
+
+
+
+
+class WhiteBalanceTransform {
+    protected:
+    cms::ColorManagementSystem* _profile;
+    float3x3 _whiteBalanceMatrix;  
+
+    public:
+
+    WhiteBalanceTransform() {
+        this->_whiteBalanceMatrix = float3x3::Identity;
+    }
+
+    WhiteBalanceTransform(cms::ColorManagementSystem* profile) {
+        this->_whiteBalanceMatrix = float3x3::Identity;
+        this->_profile = profile;
+    }
+
+    void set_white_point(float x, float y) {
+        bfloat2 new_white_point = bfloat2(x,y);
+        auto chroma = this->_profile->GetChromas();
+        ColorManagementSystem::compute_white_balance_XYZ_Matrix(
+            chroma.R, chroma.G, chroma.B, chroma.W, new_white_point, this->_whiteBalanceMatrix
+        );
+    }
+
+    std::array<float, 3> transform_XYZ2XYZ(float x, float y, float z) {
+        bfloat3 xyz_t = this->_whiteBalanceMatrix * bfloat3(x, y, z);
+        return {xyz_t.x, xyz_t.y, xyz_t.z};
+    }
+
+
+    std::array<float, 3> transform_xyY2XYZ(float x, float y, float Y) {
+        bfloat3	XYZ;
+        ColorManagementSystem::xyY2XYZ(bfloat3(x,y,Y), XYZ);
+        bfloat3 xyz_t = this->_whiteBalanceMatrix * XYZ;
+        return {xyz_t.x, xyz_t.y, xyz_t.z};
+    }
+};
+
+
+
+class ColorProfile : public Component {
+    protected:
+
+    
+
+    bfloat2	_white_point; 
+    bfloat2	_x_xy; // Red or warm white
+    bfloat2	_y_xy; // Green or mid white
+    bfloat2	_z_xy; // Blue or cold white
+
+    bool _setup = false;
+
+    bool color_temp = false;
+
+
+    cms::ColorManagementSystem _profile;
+    public:
+
+    void set_white_point_xy(std::array<float, 2> xy) {  
+        this->_white_point.Set( xy[0], xy[1]);
+        this->update_chroma();
+    }
+
+    void set_red_xy(std::array<float, 2> xy) {  
+        this->_x_xy.Set( xy[0], xy[1]);
+        this->update_chroma();
+    }
+
+    void set_green_xy(std::array<float, 2> xy) {  
+        this->_y_xy.Set( xy[0], xy[1]);
+        this->update_chroma();
+    }
+
+    void set_blue_xy(std::array<float, 2> xy) {  
+        this->_z_xy.Set( xy[0], xy[1]);
+        this->update_chroma();
+    }
+
+    void set_warm_white_xy(std::array<float, 2> xy) {  
+        this->_x_xy.Set( xy[0], xy[1]);
+        this->update_chroma();
+    }
+   
+    void set_mid_white_xy(std::array<float, 2> xy) {  
+        this->_y_xy.Set( xy[0], xy[1]);
+        color_temp = true;
+        this->update_chroma();
+    }
+
+    void set_cold_white_xy(std::array<float, 2> xy) {  
+        this->_z_xy.Set( xy[0], xy[1]);
+        color_temp = true;
+        this->update_chroma();
+    }
+
+    void set_white_point_ct(float mireds) { 
+        cms::compute_white_point_chromaticities_approx_mireds(mireds, this->_white_point);
+        this->update_chroma();
+    }
+
+    void set_warm_white_ct(float mireds) { 
+        cms::compute_white_point_chromaticities_approx_mireds(mireds, this->_x_xy);
+        color_temp = true;
+        this->update_chroma();
+    }
+
+    void set_mid_white_ct(float mireds) { 
+        cms::compute_white_point_chromaticities_approx_mireds(mireds, this->_y_xy);
+        color_temp = true;
+        this->update_chroma();
+    }
+
+    void set_cold_white_ct(float mireds) { 
+        cms::compute_white_point_chromaticities_approx_mireds(mireds, this->_z_xy);
+        color_temp = true;
+        this->update_chroma();
+    }
+
+    WhiteBalanceTransform get_white_balance_transform() { 
+        return WhiteBalanceTransform (&this->_profile);
+    }
+
+    std::array<float, 3> RGB2XYZ(float r, float g, float b) {  
+        auto rgb = bfloat3(r, g, b);
+        auto XYZ = bfloat3(1.0f, 1.0f, 1.0f);
+        this->_profile.RGB2XYZ( rgb, XYZ );
+        return {XYZ.x, XYZ.y, XYZ.z};
+    }
+
+    std::array<float, 3> RGB2xyY(float r, float g, float b) {  
+        auto rgb = bfloat3(r, g, b);
+        auto xyY = bfloat3(1.0f, 1.0f, 1.0f);
+        this->_profile.RGB2xyY( rgb, xyY );
+        return {xyY.x, xyY.y, xyY.z};
+    }
+
+    std::array<float, 3> XYZ2RGB(float x, float y, float z) {  
+
+         if (color_temp){
+
+
+            bfloat3	xyY;
+            ColorManagementSystem::XYZ2xyY(bfloat3(x,y,z), xyY);
+            
+
+            bfloat2 wb_xy;
+            cms::compute_white_point_xy_approx(bfloat2(xyY.x,xyY.y), wb_xy );
+
+            auto rgb = bfloat3(1.0f, 1.0f, 1.0f);
+            this->_profile.xyY2RGB( wb_xy, xyY.z, rgb );
+            return {rgb.x, rgb.y, rgb.z};
+
+        } else {
+
+            bfloat3	xyY;
+            ColorManagementSystem::XYZ2xyY(bfloat3(x,y,z), xyY);
+            
+
+            bfloat2 wb_xy;
+            cms::compute_white_point_xy_approx(bfloat2(xyY.x,xyY.y), wb_xy );
+
+
+            auto XYZ = bfloat3(x, y, z);
+            auto rgb = bfloat3(1.0f, 1.0f, 1.0f);
+            this->_profile.XYZ2RGB( XYZ, rgb );
+            return {rgb.x, rgb.y, rgb.z};
+        }
+    }
+
+    std::array<float, 3> xyY2RGB(float x, float y, float brightness) {
+
+
+        if (color_temp){
+
+            bfloat2 wb_xy;
+            cms::compute_white_point_xy_approx(bfloat2(x,y), wb_xy );
+
+            auto rgb = bfloat3(1.0f, 1.0f, 1.0f);
+            this->_profile.xyY2RGB( wb_xy, brightness, rgb );
+            return {rgb.x, rgb.y, rgb.z};
+
+        } else {
+            auto xy = bfloat2(x, y);
+            auto rgb = bfloat3(1.0f, 1.0f, 1.0f);
+            this->_profile.xyY2RGB( xy, brightness, rgb );
+            return {rgb.x, rgb.y, rgb.z};
+        }
+
+    }
+
+
+    void update_chroma() {
+        if(!this->_setup) {
+          return;
+        }
+      
+        this->_profile.set_chromas(
+            cms::Chromaticities(  
+                this->_x_xy, 
+                this->_y_xy,
+                this->_z_xy, 
+                this->_white_point 
+            )
+        );
+    }
+
+    void setup() override {
+        this->_setup = true;
+
+        ESP_LOGD("ColorProfile", "Using colour profile (CIE 1931) x(%f,%f) y(%f,%f) z(%f,%f) w(%f,%f)", 
+            this->_x_xy.x, this->_x_xy.y,
+            this->_y_xy.x, this->_y_xy.y,
+            this->_z_xy.x, this->_z_xy.y,
+            this->_white_point.x, this->_white_point.y
+        );
+
+        this->update_chroma();
+    }
+
+    float get_setup_priority() const override { 
+      // Must run before any device set its IO state
+      return setup_priority::CALCULATE_CHROMA; 
+    }
+};
+
+}  // namespace color_profile
+}  // namespace esphome

@@ -1,0 +1,135 @@
+# These substitutions allow the end user to override certain values
+substitutions:
+  device_name: "strip-light-rgbcwww"
+  log_level: "DEBUG"
+
+enable_cms:
+
+packages:
+  core: !include config/core.yaml
+  network_access: !include "config/network/wifi.yaml"
+  #network_access: !include config/network/LAN8720.yaml
+
+  # Configure lights
+  rgb__rgb_control_a: !include 
+    file: config/lights/rgb__rgb_control.yaml
+    vars: 
+      control_name: "A"
+      id: "rgb_a"
+      red_output: "red_output"
+      green_output: "green_output"
+      blue_output: "blue_output"
+
+  cwww_rgbw__color_temperature_control_a: !include 
+    file: config/lights/cwww_rgbw__color_temperature_control.yaml
+    vars: 
+      control_name: "A"
+      id: "ct_a"
+      cold_white_color_temperature: "6500 K"
+      warm_white_color_temperature: "1800 K"
+      red_output: "red_output"
+      green_output: "green_output"
+      blue_output: "blue_output"
+      cold_white_output: "cold_white_output"
+      mid_white_output: "mid_white_output"
+      warm_white_output: "warm_white_output"
+
+  monochromatic__brightness_control_red: !include 
+    file: config/lights/monochromatic__brightness_control.yaml
+    vars: 
+      control_name: Red
+      id: mono_red
+      monochromatic_output: "red_output"
+      hidden_controller: false
+
+  monochromatic__brightness_control_green: !include 
+    file: config/lights/monochromatic__brightness_control.yaml
+    vars: 
+      control_name: Green
+      id: mono_green
+      monochromatic_output: "green_output"
+      hidden_controller: false
+
+  monochromatic__brightness_control_blue: !include 
+    file: config/lights/monochromatic__brightness_control.yaml
+    vars: 
+      control_name: Blue
+      id: mono_blue
+      monochromatic_output: "blue_output"
+      hidden_controller: false
+
+  monochromatic__brightness_control_cold: !include 
+    file: config/lights/monochromatic__brightness_control.yaml
+    vars: 
+      control_name: Cold White
+      id: mono_cold_white
+      monochromatic_output: "cold_white_output"
+      hidden_controller: false
+
+  monochromatic__brightness_control_mid: !include 
+    file: config/lights/monochromatic__brightness_control.yaml
+    vars: 
+      control_name: Mid White
+      id: mono_mid_white
+      monochromatic_output: "mid_white_output"
+      hidden_controller: false
+
+  monochromatic__brightness_control_warm: !include 
+    file: config/lights/monochromatic__brightness_control.yaml
+    vars: 
+      control_name: Warm White
+      id: mono_warm_white
+      monochromatic_output: "warm_white_output"
+      hidden_controller: false
+
+  # Configure input buttons
+  momentary_button_a: !include 
+    file: config/input/momentary_button.yaml
+    vars: 
+      control_name: "A"
+      id: "a_switch"
+      target_on_light_id: "ct_a"
+      target_off_light_ids: "{ct_a, rgb_a}"
+      switch_gpio: GPIO34
+ 
+  # Configure Output devices 
+  cold_white_output: !include 
+    file: config/output/pwm_channel.yaml
+    vars: 
+      id: cold_white_output
+      ledc_gpio: GPIO33
+      ledc_min_power: 0.0045
+
+  warm_white_output: !include 
+    file: config/output/pwm_channel.yaml
+    vars: 
+      id: warm_white_output
+      ledc_gpio: GPIO32
+      ledc_min_power: 0.0040
+
+  mid_white_output: !include 
+    file: config/output/pwm_channel.yaml
+    vars: 
+      id: mid_white_output
+      ledc_gpio: GPIO14
+      ledc_min_power: 0.02
+  blue_output: !include 
+    file: config/output/pwm_channel.yaml
+    vars: 
+      id: blue_output
+      ledc_gpio: GPIO13
+      ledc_min_power: 0.0015
+
+  red_output: !include 
+    file: config/output/pwm_channel.yaml
+    vars: 
+      id: red_output
+      ledc_gpio: GPIO16
+      ledc_min_power: 0.017
+
+  green_output: !include 
+    file: config/output/pwm_channel.yaml
+    vars: 
+      id: green_output
+      ledc_gpio: GPIO04 
+      ledc_min_power: 0.016

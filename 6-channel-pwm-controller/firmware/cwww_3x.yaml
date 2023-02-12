@@ -64,14 +64,14 @@ packages:
       target_off_light_ids: "{ct_a}"
       switch_gpio: GPIO34
 
-  momentary_button_b: !include 
-    file: config/input/momentary_button.yaml
-    vars: 
-      control_name: "B"
-      id: "b_switch"
-      target_on_light_id: "ct_b"
-      target_off_light_ids: "{ct_b}"
-      switch_gpio: GPIO35
+  #momentary_button_b: !include 
+  #  file: config/input/momentary_button.yaml
+  #  vars: 
+  #    control_name: "B"
+  #    id: "b_switch"
+  #    target_on_light_id: "ct_b"
+  #    target_off_light_ids: "{ct_b}"
+  #    switch_gpio: GPIO35
     
 
   # Configure input buttons

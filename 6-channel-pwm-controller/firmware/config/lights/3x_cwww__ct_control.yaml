@@ -5,7 +5,7 @@ substitutions:
 
   constant_brightness: "true"
   gamma_correct: "2.0"
-  default_transition_length: "2s"
+  default_transition_length: "3s"
 
   cold_white_color_temperature: "6800 K"
   warm_white_color_temperature: "2500 K"

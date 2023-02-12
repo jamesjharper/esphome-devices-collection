@@ -33,7 +33,7 @@ api:
 ota:
   password: !secret ota_password
   
-#status_led:
-#  pin:
-#    number: GPIO02
+status_led:
+  pin:
+    number: GPIO02
 #    drive_strength: 10mA

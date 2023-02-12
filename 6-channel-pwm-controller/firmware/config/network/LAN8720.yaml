@@ -6,7 +6,7 @@ ethernet:
   phy_addr: 1
   power_pin: GPIO17
 
-  manual_ip:
-    static_ip: !secret eth_static_ip
-    gateway: !secret eth_gateway
-    subnet: !secret eth_subnet
+#  manual_ip:
+#    static_ip: !secret eth_static_ip
+#    gateway: !secret eth_gateway
+#    subnet: !secret eth_subnet

@@ -1,7 +1,10 @@
 # These substitutions allow the end user to override certain values
 substitutions:
-  device_name: "rgbw-light"
+  device_name: "downlight-light-rgbcwww"
   log_level: "DEBUG"
+
+
+enable_cms:
 
 packages:
   core: !include config/core.yaml
@@ -23,9 +26,9 @@ packages:
     vars: 
       control_name: "A"
       id: "ct_a"
-      cold_white_color_temperature: "6800 K"
-      warm_white_color_temperature: "2500 K"
-      mid_white_color_temperature: "3000 K"
+      cold_white_color_temperature: "6500 K"
+      mid_white_color_temperature: "2850 K"
+      warm_white_color_temperature: "2000 K"
       red_output: "red_output"
       green_output: "green_output"
       blue_output: "blue_output"
@@ -39,7 +42,7 @@ packages:
       control_name: Red
       id: mono_red
       monochromatic_output: "red_output"
-      hidden_controller: true
+      hidden_controller: false
 
   monochromatic__brightness_control_green: !include 
     file: config/lights/monochromatic__brightness_control.yaml
@@ -47,7 +50,7 @@ packages:
       control_name: Green
       id: mono_green
       monochromatic_output: "green_output"
-      hidden_controller: true
+      hidden_controller: false
 
   monochromatic__brightness_control_blue: !include 
     file: config/lights/monochromatic__brightness_control.yaml
@@ -55,7 +58,7 @@ packages:
       control_name: Blue
       id: mono_blue
       monochromatic_output: "blue_output"
-      hidden_controller: true
+      hidden_controller: false
 
   monochromatic__brightness_control_cold: !include 
     file: config/lights/monochromatic__brightness_control.yaml
@@ -63,7 +66,7 @@ packages:
       control_name: Cold White
       id: mono_cold_white
       monochromatic_output: "cold_white_output"
-      hidden_controller: true
+      hidden_controller: false
 
   monochromatic__brightness_control_mid: !include 
     file: config/lights/monochromatic__brightness_control.yaml
@@ -71,7 +74,7 @@ packages:
       control_name: Mid White
       id: mono_mid_white
       monochromatic_output: "mid_white_output"
-      hidden_controller: true
+      hidden_controller: false
 
   monochromatic__brightness_control_warm: !include 
     file: config/lights/monochromatic__brightness_control.yaml
@@ -79,7 +82,7 @@ packages:
       control_name: Warm White
       id: mono_warm_white
       monochromatic_output: "warm_white_output"
-      hidden_controller: true
+      hidden_controller: false
 
   # Configure input buttons
   momentary_button_a: !include 
@@ -96,14 +99,14 @@ packages:
     file: config/output/pwm_channel.yaml
     vars: 
       id: cold_white_output
-      ledc_gpio: GPIO32
+      ledc_gpio: GPIO33
       ledc_min_power: 0.0045
 
   warm_white_output: !include 
     file: config/output/pwm_channel.yaml
     vars: 
       id: warm_white_output
-      ledc_gpio: GPIO33
+      ledc_gpio: GPIO32
       ledc_min_power: 0.0040
 
   mid_white_output: !include 
